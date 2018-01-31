@@ -1,0 +1,511 @@
+---
+title: "Data Science in R"
+output: 
+  learnr::tutorial:
+    css: css/lockedata.css
+runtime: shiny_prerendered
+---
+
+```{r setup, include=FALSE}
+library(learnr)
+knitr::opts_chunk$set(echo = FALSE)
+library(tidyverse)
+library(modelr)
+library(DBI)
+library(odbc)
+library(broom)
+library(FFTrees)
+library(caret)
+
+sa<-Sys.getenv('SHINY_PORT') != ""
+```
+
+
+## Data Science in R
+Spend half a day going from database to a predictive model. Get hands-on with code to see how easy it can be and get a checklist of next steps to enable you to build your own stuff.
+
+## Steph Locke & Locke Data
+- Steph
+    + MVP
+    + [Working with R](http://geni.us/workingwithr)
+    + [Data Manipulation in R](http://geni.us/datamanipulationinr)
+- Locke Data
+    + Consultancy focussed on helping organisations get started with data science
+
+- [\@stefflocke](https://twitter.com/stefflocke) [\@lockedata](https://twitter.com/lockedata)
+- steph@itsalocke.com
+- [itsalocke.com](https://itsalocke.com)
+
+## Business Challenge
+### Business Challenge/goal
+You should have some sort of company goal or challenge that needs to be tackled e.g.
+
+- Increase customer profitability
+- Increase quantity of customers
+- Reduce overheads
+
+```{r challengequiz}
+quiz(
+  question("Which of these is not a *good* reason to do data science?",
+    answer("Everyone's doing it", correct = TRUE),
+    answer("Add value"),
+    answer("Advance company capabilities"),
+    answer("Try new ways to solve problems")
+  )
+)
+```
+
+### Data science challenge
+Once you have a business challenge, you can work with the business to find a lever you can push on. This lever / activity should change a behaviour and as a result help with the business goal e.g.
+
+- offering incentives to stay with the company
+- better targeting advertising to increase uptake
+- identifying anomalous activity so people can investigate
+
+Find the lever you can push on to change behaviours that helps with business goal.
+
+```{r leverquiz}
+quiz(
+  question("Which of these is not a *good* reason to do data science?",
+    answer("Everyone's doing it", correct = TRUE),
+    answer("Add value"),
+    answer("Advance company capabilities"),
+    answer("Try new ways to solve problems")
+  )
+)
+```
+
+### Getting started
+#### Tips
+- Pick something only somewhat important and valuable to begin
+- Find many levers
+
+
+## Process
+
+### CRISP-DM
+![](https://upload.wikimedia.org/wikipedia/commons/b/b9/CRISP-DM_Process_Diagram.png)
+
+### Data science flow
+![](https://github.com/stephlocke/lazyCDN/raw/master/RHighlevel.png)
+
+### Getting started
+#### Tips
+- Iterate
+- Prototype
+
+#### Next steps
+- Check out [Experiment kanban](https://medium.com/lean-product-development/kanban-boards-for-hypothesis-driven-development-32f99a70e8ee)
+- Check out [MSFT data science process](https://azure.microsoft.com/en-gb/documentation/learning-paths/data-science-process/)
+
+## Data & EDA
+### Data
+- Do you have enough data?
+- What biases are in the data that you might end up reinforcing?
+- Have there been changes over time that mean the information means different things?
+- Does it actually measure what you think it's measuring?
+
+### Extra data
+- Where can you get extra information from?
+- Do the join criteria work?
+- Will you be able to get it for production purposes?
+
+### Exploration
+- Analyse the heck out of that data!
+- Create extra "features"
+
+### Get data
+You can get data from many sources including databases.
+
+
+```{r eval=FALSE, echo=TRUE}
+library(DBI)
+library(odbc)
+
+driver = "ODBC Driver 13 for SQL Server"
+server = "lockedata.westeurope.cloudapp.azure.com"
+database = "datasci"
+uid = "example"
+pwd = "HBBFSE"
+
+
+dbConn <- dbConnect(odbc(), driver = driver, server = server, database = database, 
+    uid = uid, pwd = pwd)
+```
+
+```{r eval=TRUE, echo=FALSE}
+library(DBI)
+library(odbc)
+
+dbConnector<-function(local){
+server = "lockedata.westeurope.cloudapp.azure.com"
+database = "datasci"
+uid = "example"
+pwd = "HBBFSE"
+
+  if(local){
+    dbConnect(odbc(), 
+              driver = "ODBC Driver 13 for SQL Server",
+              server = server, database = database, 
+              uid = uid, pwd = pwd)
+    
+  }else{
+  dbConnect(
+  odbc(),
+  Driver   = "FreeTDS",
+  Database = database,
+  Uid      = uid,
+  Pwd      = pwd,
+  Server     = server,
+  Port     = 1433,
+  TDS_Version=7.4
+)
+  }
+  
+}
+
+dbConn <- dbConnector(!sa)
+```
+
+Change this code to get the `chicagofood` table instead of `iris`.
+```{r getdata, exercise=TRUE, exercise.eval=TRUE, message=FALSE}
+iris <- dbGetQuery(dbConn, "select * from iris")
+summary(iris)
+```
+
+```{r getdata-hint}
+chicagofood <- dbGetQuery(dbConn, "select * from chicagofood")
+summary(chicagofood)
+```
+
+```{r echo=FALSE, message=FALSE}
+chicagofood <- dbGetQuery(dbConn, "select * from chicagofood")
+
+chicagofood %>% 
+  mutate(
+         pastSerious = pmin(pastSerious, 1),
+         pastCritical = pmin(pastCritical, 1),
+         ageAtInspection = ifelse(ageAtInspection > 4, 1L, 0L),
+         heat_burglary = pmin(heat_burglary, 70),
+         heat_sanitation = pmin(heat_sanitation, 70),
+         heat_garbage = pmin(heat_garbage, 50),
+         criticalFound=pmin(1, criticalCount),
+         fail_flag=fail_flag) %>% 
+  select(-pass_flag)->
+  chicagofood
+```
+
+### Data exploration
+Explore data in tabular and graphical formats. 
+
+Get a summary of values.
+
+```{r summary, exercise=TRUE, exercise.eval=TRUE}
+summary(iris)
+```
+
+```{r summary-hint, exercise.eval=TRUE}
+summary(chicagofood)
+```
+
+Produce bivariate views of data to see which fields are most predictive.
+
+```{r echo=TRUE}
+library(tidyverse)
+
+chicagofood %>% 
+  count(fail_flag, Inspector_Assigned) %>% 
+  group_by(Inspector_Assigned) %>% 
+  mutate(prop=scales::percent(n/sum(n))) %>%
+  select(-n) %>% 
+  spread(fail_flag,prop)
+```
+
+Look at the fail rate by `Facility_Type`.
+
+```{r analysedata, exercise=TRUE,  exercise.lines = 10}
+```
+
+Build visualisations to view distributions of data.
+```{r echo=TRUE}
+chicagofood %>% 
+  group_by(Month=lubridate::month(Inspection_Date),Facility_Type) %>% 
+  summarise(failrate=mean(fail_flag)) %>% 
+  ggplot(aes(Month, failrate, 
+             group=Facility_Type, colour=Facility_Type))+
+  geom_line()
+```
+
+Look at fail rates over time split out by whether they are hold a mobile license or not.
+```{r plotdata, exercise=TRUE,  exercise.lines = 10}
+```
+
+### Getting started
+#### Tips
+- Data dictionaries
+- Code everything
+
+#### Next steps
+- Read R for Data Science [geni.us/rfords](//geni.us/rfords)
+- Use your existing tools
+
+## Sampling
+### Sampling basics
+- [OPTIONAL] Dataset for missing data
+- Dataset for building your model
+- Dataset for testing your model
+
+Create samples for our modelling exercise. Revise this code to create and store samples for your `chicagofood` data.
+
+```{r sample, exercise=TRUE, exercise.eval=TRUE}
+library(modelr)
+
+iris %>% 
+  resample_partition(c("train"=.7, "test"=.3)) ->
+  irissample
+
+irissample %>% 
+  pluck("train") ->
+  iris_train
+
+irissample %>% 
+  pluck("test") ->
+  iris_test
+```
+
+
+```{r sample-hint}
+library(modelr)
+
+chicagofood %>% 
+  resample_partition(c("train"=.7, "test"=.3)) ->
+  chicagofoodsample
+
+chicagofoodsample %>% 
+  pluck("train") ->
+  chicagofood_train
+
+chicagofoodsample %>% 
+  pluck("test") ->
+  chicagofood_test
+```
+
+```{r echo=FALSE}
+library(modelr)
+
+chicagofood %>% 
+  resample_partition(c("train"=.7, "test"=.3)) ->
+  chicagofoodsample
+
+chicagofoodsample %>% 
+  pluck("train") ->
+  chicagofood_train
+
+chicagofoodsample %>% 
+  pluck("test") ->
+  chicagofood_test
+```
+
+### Considerations
+- Balanced or unbalanced
+- Bootstrapping
+
+
+### Getting started
+#### Tips
+- Make samples reproducible
+- Don't double-dip!
+
+#### Next steps
+- Read about [sampling](https://www.khanacademy.org/math/statistics-probability/designing-studies/sampling-methods-stats/a/sampling-methods-review)
+
+## Modelling
+### Models
+- Supervised vs unsupervised
+- Parametric vs non-parametric
+
+### Models
+- Regression
+- Trees
+- Others
+
+
+### Candidate models
+- Simple model
+- Complex model
+- Different model types
+
+
+We can also build decision trees to make predictions about discrete or even continuous variables (depending on algorithm).
+
+```{r eval=FALSE}
+chicagofood_train %>% 
+  as_data_frame() %>% 
+  select(-ends_with("ID"), -LICENSE_DESCRIPTION, 
+         -(Inspection_Date:License), -ends_with("Count"), -ends_with("Found")) %>%
+  FFTrees(fail_flag ~ ., ., do.comp=FALSE) ->
+  dtree_model
+plot(dtree_model)
+```
+
+```{r echo=FALSE}
+if(!file.exists( "dtree.rds")){
+chicagofood_train %>% 
+  as_data_frame() %>% 
+  select(-ends_with("ID"), -LICENSE_DESCRIPTION, 
+         -(Inspection_Date:License), -ends_with("Count"), -ends_with("Found")) %>%
+  FFTrees(fail_flag ~ ., ., do.comp=FALSE) ->
+  dtree_model
+saveRDS(dtree_model, "dtree.rds")
+}
+dtree_model<-readRDS("dtree.rds")
+plot(dtree_model)
+```
+
+Amend this logistic regression model that predicts `fail_flag` to use three columns.
+
+```{r simple-glm, exercise=TRUE, exercise.eval=TRUE}
+myglm<- glm(fail_flag ~ ageAtInspection + pastSerious, chicagofood , family="binomial")
+```
+
+
+### Getting started
+#### Tips
+- Models are cattle not pets
+
+
+#### Next steps
+- Check out [setosa.io](http://setosa.io/ev/ordinary-least-squares-regression/)
+
+## Evaluation
+### Critical Success Factors
+- False positives vs false negatives
+- Ranking
+- Aligns with experts
+
+Add predictions for test data.
+```{r dtreefit, echo=TRUE}
+chicagofood_test %>% 
+  as_data_frame() %>% 
+  add_predictions(dtree_model, "dtree") ->
+  chicagofood_test
+```
+
+Add predictions for your glm to the test data.
+```{r addpred, exercise=TRUE,  exercise.lines = 5}
+```
+
+```{r addpred-hint}
+chicagofood_test %>% 
+  as_data_frame() %>% 
+  add_predictions(myglm, "glm") ->
+  chicagofood_test
+```
+
+Build a confusion matrix to look at how well you classify the test data.
+```{r echo=TRUE}
+confusionMatrix(as.numeric(chicagofood_test$dtree), 
+                chicagofood_test$fail_flag)
+```
+
+Apply the methodology to your glm results. Use the helper function `classify` to transofrm the glm output.
+
+```{r echo=FALSE}
+classify<-function(x) as.numeric(x>0)
+```
+
+```{r glmpred, exercise=TRUE,  exercise.lines = 5}
+```
+
+```{r glmpred-hint, warning=FALSE, results='hide'}
+confusionMatrix(classify(chicagofood_test$glm), 
+                chicagofood_test$fail_flag)
+```
+
+### Data diving
+- Segments
+- Structural weaknesses
+- Test data
+
+### Getting started
+#### Tips
+- Don't just rely on single metric
+
+
+
+## Operationalising
+### Features
+- ETL for new data and calculations
+- What data quality stuff had to be done?
+
+### Model
+- How will you store the model?
+- Does it need versioning?
+- When will it need to be updated and how?
+
+### Technology
+- What's the easiest way of getting live?
+- What's the long term way of getting it live?
+- What's your "bus factor"?
+
+```{r operationalisingquiz}
+quiz(
+  question("Which of these don't you need to take into account when operationalising models?",
+    answer("Data availability"),
+    answer("Update requirements"),
+    answer("Sign-off"),
+    answer("Model creation processes", correct = TRUE)
+  )
+)
+```
+
+### Getting started
+#### Tips
+- KISS
+- Operationalising a model often takes longer than the modelling exercise (at least initially)
+
+#### Next steps
+- Check out R in SQL Server
+- Check out Azure ML
+
+## Monitoring
+### Logging
+- Log results
+- Log all the things
+
+### Metrics
+- Measure the business lever & other KPIs
+- Set tolerances for negative impacts on other metrics
+- J-performance
+
+### Holdouts
+- Always have a control group
+
+### Getting started
+#### Tips
+- Plan for monitoring, don't make it an after-thought
+
+
+## Conclusion
+### Process
+![](https://github.com/stephlocke/lazyCDN/raw/master/RHighlevel.png)
+
+### Tips
+- Pick something only somewhat important and valuable to begin
+- Find many levers
+- Iterate
+- Prototype
+- Data dictionaries
+- Code everything
+- Make samples reproducible
+- Don't double-dip!
+- Models are cattle not pets
+- Don't just rely on single metric
+- KISS
+- Operationalising a model often takes longer than the modelling exercise (at least initially)
+- Plan for monitoring, don't make it an after-thought
+
+### Follow up
+- @stefflocke @lockedata
+- steph@itsalocke.com
+- itsalocke.com
