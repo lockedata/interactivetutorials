@@ -59,10 +59,21 @@ quiz(
 Once you have a business challenge, you can work with the business to find a lever you can push on. This lever / activity should change a behaviour and as a result help with the business goal e.g.
 
 - offering incentives to stay with the company
-- better targeted advertising to increase uptake
+- better targeting advertising to increase uptake
 - identifying anomalous activity so people can investigate
 
 Find the lever you can push on to change behaviours that helps with business goal.
+
+```{r leverquiz}
+quiz(
+  question("Which of these is not a *good* reason to do data science?",
+    answer("Everyone's doing it", correct = TRUE),
+    answer("Add value"),
+    answer("Advance company capabilities"),
+    answer("Try new ways to solve problems")
+  )
+)
+```
 
 ### Getting started
 #### Tips
@@ -91,25 +102,20 @@ Find the lever you can push on to change behaviours that helps with business goa
 ### Data
 - Do you have enough data?
 - What biases are in the data that you might end up reinforcing?
-  - For example, if you held individual customer level data, be prepared to explore their age and gender.
-  - Was the data you hold gathered for this specific purpose (unlikely) or for no purpose at all? Is it all relevant?
 - Have there been changes over time that mean the information means different things?
 - Does it actually measure what you think it's measuring?
-  - It is always worth looking into the definitions of how each variable was created if it isn't your data.
 
 ### Extra data
 - Where can you get extra information from?
-  - Consider the scales that this data is collected at, is it at the same level? Can it be aggregated up to your level?
 - Do the join criteria work?
 - Will you be able to get it for production purposes?
 
 ### Exploration
 - Analyse the heck out of that data!
 - Create extra "features"
-- Descriptive statistics, such as histograms to understand the spread of the data are a great starting point.
 
 ### Get data
-You can get data from many sources including databases. This can be data you or your company have collected for other purposes, open source data such as the census, or data that you have bought to improve your analysis, like credit scores or survey responses. 
+You can get data from many sources including databases.
 
 
 ```{r eval=FALSE, echo=TRUE}
@@ -236,7 +242,7 @@ Look at fail rates over time split out by whether they are hold a mobile license
 
 ### Getting started
 #### Tips
-- Data dictionaries or metadata give you a wealth of information about the contents, format and structure of the data.
+- Data dictionaries
 - Code everything
 
 #### Next steps
@@ -302,9 +308,7 @@ chicagofoodsample %>%
 
 ### Considerations
 - Balanced or unbalanced
-  **What is balanced or unbalanced? In what context?
 - Bootstrapping
-  - This is a method other than confidence intervals to estimate a population parameter through random sampling with replacement. i.e. the computer does it over and over and over so that you don't have to! 
 
 
 ### Getting started
@@ -317,59 +321,16 @@ chicagofoodsample %>%
 
 ## Modelling
 ### Models
-- Pattern classification can be grouped into two main subcategories: Supervised and unsupervised. 
-  - In supervised learning, the class labels which are used to build the classification model are known, and this information is used to train a model to classify new data entries.  
-  - In unsupervised learning, classes are unlabelled and have to be inferred from an unstructured dataset. This typically uses a clustering method to group the unlabeled samples based on similarity (or distance) measures.
-  
-There's a great [blog post by Sebastian Raschka](http://sebastianraschka.com/Articles/2014_intro_supervised_learning.html) which gives a detailed explanation of the differences, and then gives a brilliant description of a typical supervised learning workflow. Take a look! 
-
+- Supervised vs unsupervised
 - Parametric vs non-parametric
-  - A learning model that summarizes data with a set of parameters of fixed size (independent of the number of training examples) is called a parametric model. No matter how much data you throw at a parametric model, it won’t change its mind about how many parameters it needs.
-  
-  - Examples of parametric models include:
-    + Logistic regression
-    + Linear Discriminant Analysis
-    + Naive Bayes
-    + Simple Neural Networks
-  
-  - Benefits of parametric models 
-    + They are simple and results are easier to interpret
-    + They are fast
-    + They work on imperfect data, and don't require as much training data
-    
-  - Limitations of parametric models 
-    + They are constrained by their functional form
-    + They are better suited to simpler problems
-    + Poor fitting
-  
-  - Nonparametric methods are good when you have a lot of data and no prior knowledge, and when you don’t want to worry too much about choosing just the right features. They seek to best fit the training data, whilst also maintaining some ability to generalise unseen data. 
-  
-  -Examples of non-parametric models
-    + k-Nearest Neighbour
-    + Decision trees
-    + Support Vector Machines
-    
-  - Benefits of non-parametric models
-    + They are felxible and capable of fitting a large number of functional forms
-    + No assumptions about the underlying functions
-    + Can result in higher performance models for prediction
-    
-  - Limitations of non-parametric models
-    + They require a lot more training data
-    + They are slower
-    + There is more of a risk of overfitting the training data and it is harder to explain why specific predictions are made. 
 
 ### Models
 - Regression
-  - Regression analysis is a mathematical way of understanding which variables do have an impact on your business problem. Which factors matter most, and which can we ignore? 
-  - General linear models (GLM)
-  - But remember! Correlation does not mean causation!
 - Trees
 - Others
 
 
 ### Candidate models
-**Not sure I know anything about candidate models, do these have another name? 
 - Simple model
 - Complex model
 - Different model types
@@ -419,7 +380,6 @@ myglm<- glm(fail_flag ~ ageAtInspection + pastSerious, chicagofood , family="bin
 ## Evaluation
 ### Critical Success Factors
 - False positives vs false negatives
-  - Be wary of those results which may wrongly indacte that a particular attribute is or isn't present.
 - Ranking
 - Aligns with experts
 
@@ -470,6 +430,8 @@ confusionMatrix(classify(chicagofood_test$glm),
 ### Getting started
 #### Tips
 - Don't just rely on single metric
+
+
 
 ## Operationalising
 ### Features
